@@ -1,0 +1,31 @@
+{
+    "security.workspace.trust.untrustedFiles": "open",
+    "[python]": {
+        "editor.formatOnType": true
+    },
+    "explorer.confirmDelete": false,
+    "notebook.output.textLineLimit": 300000,
+    "editor.inlineSuggest.enabled": true,
+    "terminal.integrated.inheritEnv": false,
+    "explorer.confirmDragAndDrop": false,
+    "debug.onTaskErrors": "showErrors",
+    "workbench.sideBar.location": "right",
+    "editor.lineNumbers": "relative",
+    "cmake.configureOnOpen": false,
+    "cmake.showOptionsMovedNotification": false,
+    "extensions.ignoreRecommendations": true,
+    "window.zoomLevel": -1,
+    "terminal.integrated.enableMultiLinePasteWarning": false,
+    "diffEditor.ignoreTrimWhitespace": false,
+    "jupyter.askForKernelRestart": false,
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 100,
+    "explorer.confirmPasteNative": false,
+    "svelte.enable-ts-plugin": true,
+    "vim.vimrc.enable": true,
+    "editor.fontFamily": "Menlo, Monaco, 'Courier New', monospace, Anonymous Pro for Powerline",
+    "terminal.integrated.fontFamily": "MesloLGS NF",
+    "workbench.editorLargeFileConfirmation": 15,
+    "github.copilot.nextEditSuggestions.enabled": true,
+    "chat.editing.confirmEditRequestRemoval": false
+}
