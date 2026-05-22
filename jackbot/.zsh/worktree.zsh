@@ -32,6 +32,12 @@ wt — git worktree helpers (operate on the repo containing cwd)
                          branch <name>. Base defaults to origin/<default-branch>
                          (auto-fetched). cd's into the new worktree.
 
+  wt new -t|--track <branch>
+                         Check out an EXISTING upstream branch into a worktree
+                         at <repo>/worktrees/<branch>. Fetches origin first.
+                         If the local branch is absent it's created tracking
+                         origin/<branch>. Tab-completes remote branches.
+
   wt rm [<name>] [--force]
                          Remove a worktree and its local branch. Without <name>,
                          operates on cwd's worktree. Safety checks (dirty tree,
@@ -54,16 +60,39 @@ _wt_new() {
     return 1
   fi
 
-  local name=$1
-  local base=$2
-  if [[ -z $name ]]; then
-    print -u2 "wt new: missing <name>"
-    print -u2 "usage: wt new <name> [base]"
-    return 2
-  fi
+  local track=0
+  local -a positional
+  local arg
+  while (( $# )); do
+    case $1 in
+      -t|--track) track=1; shift ;;
+      -h|--help)
+        print -- "usage: wt new <name> [base]"
+        print -- "       wt new -t|--track <branch>"
+        return 0
+        ;;
+      --) shift; positional+=("$@"); break ;;
+      -*) print -u2 "wt new: unknown flag '$1'"; return 2 ;;
+      *)  positional+=("$1"); shift ;;
+    esac
+  done
 
   local main_root
   main_root=$(_wt_main_root) || { print -u2 "wt new: cannot resolve repo root"; return 1; }
+
+  if (( track )); then
+    _wt_new_track "$main_root" "${positional[@]}"
+    return $?
+  fi
+
+  local name=${positional[1]}
+  local base=${positional[2]}
+  if [[ -z $name ]]; then
+    print -u2 "wt new: missing <name>"
+    print -u2 "usage: wt new <name> [base]"
+    print -u2 "       wt new -t|--track <branch>"
+    return 2
+  fi
 
   if [[ -z $base ]]; then
     local default
@@ -103,6 +132,61 @@ _wt_new() {
 
   cd "$wt_path" || return 1
   print -- "wt new: created $wt_path on branch '$name' from $base"
+}
+
+_wt_new_track() {
+  local main_root=$1
+  local branch=$2
+  if [[ -z $branch ]]; then
+    print -u2 "wt new: --track requires a branch name"
+    print -u2 "usage: wt new -t|--track <branch>"
+    return 2
+  fi
+
+  print -- "wt new: fetching origin..."
+  if ! git -C "$main_root" fetch origin --quiet; then
+    print -u2 "wt new: fetch failed"
+    return 1
+  fi
+
+  if ! git -C "$main_root" show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+    print -u2 "wt new: origin/$branch does not exist"
+    return 1
+  fi
+
+  local wt_path="$main_root/worktrees/$branch"
+  if [[ -e $wt_path ]]; then
+    print -u2 "wt new: path already exists: $wt_path"
+    return 1
+  fi
+
+  # If the local branch is already checked out somewhere, git will refuse the add.
+  local existing_wt
+  existing_wt=$(git -C "$main_root" worktree list --porcelain | awk -v b="refs/heads/$branch" '
+    /^worktree / { path=$2 }
+    $1=="branch" && $2==b { print path; exit }
+  ')
+  if [[ -n $existing_wt ]]; then
+    print -u2 "wt new: branch '$branch' is already checked out at $existing_wt"
+    return 1
+  fi
+
+  local -a add_args
+  if git -C "$main_root" show-ref --verify --quiet "refs/heads/$branch"; then
+    # Local branch exists — just check it out into the new worktree.
+    add_args=("$wt_path" "$branch")
+  else
+    # No local branch — create one tracking origin/<branch>.
+    add_args=(--track -b "$branch" "$wt_path" "origin/$branch")
+  fi
+
+  if ! git -C "$main_root" worktree add "${add_args[@]}"; then
+    print -u2 "wt new: git worktree add failed"
+    return 1
+  fi
+
+  cd "$wt_path" || return 1
+  print -- "wt new: tracking '$branch' at $wt_path"
 }
 
 _wt_rm() {
@@ -265,3 +349,66 @@ _wt_ls_row() {
   __rows+=("$branch"$'\t'"$state"$'\t'"$path")
   : ${(PA)3::=${__rows[@]}}
 }
+
+# --- zsh completion -----------------------------------------------------------
+
+_wt_remote_branches() {
+  _wt_in_repo || return 1
+  local -a branches
+  branches=(${(f)"$(git for-each-ref --format='%(refname)' refs/remotes/origin/ 2>/dev/null \
+                     | grep -v '^refs/remotes/origin/HEAD$' \
+                     | sed 's|^refs/remotes/origin/||')"})
+  _describe -t remote-branches 'remote branch' branches
+}
+
+_wt_local_worktree_names() {
+  _wt_in_repo || return 1
+  local main_root
+  main_root=$(_wt_main_root) || return 1
+  local prefix="$main_root/worktrees/"
+  local -a names
+  names=(${(f)"$(git -C "$main_root" worktree list --porcelain \
+                  | awk -v p="$prefix" '/^worktree / && index($2,p)==1 { sub(p,"",$2); print $2 }')"})
+  _describe -t worktrees 'worktree' names
+}
+
+_wt() {
+  local curcontext=$curcontext state line ret=1
+  local -a subcommands
+  subcommands=(
+    'new:create a new worktree'
+    'rm:remove a worktree'
+    'ls:list worktrees'
+    'help:show help'
+  )
+
+  _arguments -C \
+    '1: :->subcommand' \
+    '*:: :->args' && ret=0
+
+  case $state in
+    subcommand)
+      _describe -t subcommands 'wt subcommand' subcommands && ret=0
+      ;;
+    args)
+      case $line[1] in
+        new)
+          _arguments \
+            '(-t --track)'{-t,--track}'[track an existing upstream branch]:remote branch:_wt_remote_branches' \
+            '(-h --help)'{-h,--help}'[show help]' \
+            '1:name' \
+            '2:base' && ret=0
+          ;;
+        rm)
+          _arguments \
+            '(-f --force)'{-f,--force}'[force removal]' \
+            '*:worktree:_wt_local_worktree_names' && ret=0
+          ;;
+      esac
+      ;;
+  esac
+
+  return ret
+}
+
+compdef _wt wt
