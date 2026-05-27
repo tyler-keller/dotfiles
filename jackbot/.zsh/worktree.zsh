@@ -24,6 +24,7 @@ wt() {
     new) _wt_new "$@" ;;
     rm)  _wt_rm  "$@" ;;
     ls)  _wt_ls  "$@" ;;
+    cd)  _wt_cd  "$@" ;;
     ""|-h|--help|help)
       cat <<'EOF'
 wt — git worktree helpers (operate on the repo containing cwd)
@@ -43,6 +44,10 @@ wt — git worktree helpers (operate on the repo containing cwd)
                          operates on cwd's worktree. Safety checks (dirty tree,
                          unpushed commits) abort unless --force. Unmerged
                          branches require typing a capital Y to confirm.
+
+  wt cd [<name>]         cd into the worktree at <repo>/worktrees/<name>.
+                         Without <name>, cd to the main worktree root.
+                         Tab-completes existing worktree names.
 
   wt ls                  List worktrees with branch, dirty/clean state, and path.
 EOF
@@ -187,6 +192,48 @@ _wt_new_track() {
 
   cd "$wt_path" || return 1
   print -- "wt new: tracking '$branch' at $wt_path"
+}
+
+_wt_cd() {
+  if ! _wt_in_repo; then
+    print -u2 "wt cd: not inside a git repository"
+    return 1
+  fi
+
+  local name=""
+  local arg
+  for arg in "$@"; do
+    case $arg in
+      -h|--help)
+        print -- "usage: wt cd [<name>]   (no name: cd to the main worktree root)"
+        return 0
+        ;;
+      -*) print -u2 "wt cd: unknown flag '$arg'"; return 2 ;;
+      *)
+        if [[ -n $name ]]; then
+          print -u2 "wt cd: extra argument '$arg'"
+          return 2
+        fi
+        name=$arg
+        ;;
+    esac
+  done
+
+  local main_root
+  main_root=$(_wt_main_root) || { print -u2 "wt cd: cannot resolve repo root"; return 1; }
+
+  # No name → jump back to the main worktree root.
+  if [[ -z $name ]]; then
+    cd "$main_root" || return 1
+    return 0
+  fi
+
+  local wt_path="$main_root/worktrees/$name"
+  if [[ ! -d $wt_path ]]; then
+    print -u2 "wt cd: no worktree named '$name' (try: wt ls)"
+    return 1
+  fi
+  cd "$wt_path" || return 1
 }
 
 _wt_rm() {
@@ -379,6 +426,7 @@ _wt() {
     'new:create a new worktree'
     'rm:remove a worktree'
     'ls:list worktrees'
+    'cd:cd into an existing worktree'
     'help:show help'
   )
 
@@ -403,6 +451,10 @@ _wt() {
           _arguments \
             '(-f --force)'{-f,--force}'[force removal]' \
             '*:worktree:_wt_local_worktree_names' && ret=0
+          ;;
+        cd)
+          _arguments \
+            '1:worktree:_wt_local_worktree_names' && ret=0
           ;;
       esac
       ;;
