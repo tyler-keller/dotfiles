@@ -27,6 +27,7 @@ JACKBOT_FILES=(
   ".zsh/worktree.zsh"
   ".config/git/ignore"
   ".config/zellij/config.kdl"
+  ".config/zellij/layouts/default.kdl"
 )
 
 printf 'syncing jackbot dotfiles → %s\n' "$JACKBOT_DIR"
