@@ -1,0 +1,49 @@
+shell-integration-features = ssh-env,ssh-terminfo
+
+keybind = cmd+/=new_tab
+keybind = cmd+t=text:\x14
+keybind = cmd+g=text:\x07
+keybind = cmd+p=text:\x10
+keybind = cmd+t=text:\x14
+keybind = cmd+n=text:\x0e
+keybind = cmd+h=text:\x08
+keybind = cmd+s=text:\x13
+keybind = cmd+o=text:\x0f
+keybind = cmd+q=text:\x11
+
+# bold-is-bright = true
+
+clipboard-write = allow
+
+font-family = "JetBrainsMono Nerd Font"
+font-size = 14
+
+# theme = Challenger Deep
+
+# catppuccin-mocha — best balance of dark, purple-forward, universal support
+# tokyo-night-night — slightly more blue-leaning but excellent
+# kanagawa-dragon — if you want it darker/more muted than catppuccin
+# rose-pine-main — if you want purple to lean pink
+
+background = 1e1c31
+foreground = cbe3e7
+cursor-color = ffb378
+selection-background = 3d3a5e
+selection-foreground = cbe3e7
+
+palette = 0=#100e23
+palette = 1=#ff8080
+palette = 2=#95ffa4
+palette = 3=#ffe9aa
+palette = 4=#91ddff
+palette = 5=#c991e1
+palette = 6=#aaffe4
+palette = 7=#cbe3e7
+palette = 8=#565575
+palette = 9=#ff5458
+palette = 10=#62d196
+palette = 11=#ffb378
+palette = 12=#65b2ff
+palette = 13=#906cff
+palette = 14=#63f2f1
+palette = 15=#a6b3cc
