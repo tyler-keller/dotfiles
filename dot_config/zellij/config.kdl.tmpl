@@ -267,7 +267,9 @@ load_plugins {
 
 // Choose the path to override cwd that zellij will use for opening new panes
 //
+{{ if .isJackbot -}}
 default_cwd "/home/tyler/zge-workspace"
+{{ end -}}
 
 // Toggle between having pane frames around the panes
 // Options:

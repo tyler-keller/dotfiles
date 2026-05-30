@@ -1,0 +1,11 @@
+{{- $profile := promptStringOnce . "profile" "Machine profile (mac/work-mac/jackbot/hetz/linux-3090)" -}}
+
+[data]
+  profile = {{ $profile | quote }}
+  isMac = {{ or (eq $profile "mac") (eq $profile "work-mac") }}
+  isLinux = {{ not (or (eq $profile "mac") (eq $profile "work-mac")) }}
+  isPersonalMac = {{ eq $profile "mac" }}
+  isWorkMac = {{ eq $profile "work-mac" }}
+  isJackbot = {{ eq $profile "jackbot" }}
+  isHetz = {{ eq $profile "hetz" }}
+  isLinux3090 = {{ eq $profile "linux-3090" }}

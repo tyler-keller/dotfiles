@@ -1,36 +1,47 @@
 [user]
 	name = Tyler Keller
+{{ if .isMac -}}
 	email = tylerkeller@mines.edu
-	signingkey = /Users/tylerkeller/.ssh/id_ed25519
+	signingkey = {{ .chezmoi.homeDir }}/.ssh/id_ed25519
+{{ else -}}
+	email = tyler.c.keller@gmail.com
+	signingkey = F8FBC0A02001CEEB
+{{ end -}}
+{{ if .isMac -}}
 [credential]
 	helper = osxkeychain
-	helper = 
+	helper =
 	helper = /usr/local/share/gcm-core/git-credential-manager
+{{ end -}}
 [core]
-	excludesfile = /Users/tylerkeller/.gitignore
+	excludesfile = {{ .chezmoi.homeDir }}/.config/git/ignore
 [init]
 	defaultBranch = main
 [pull]
 	ff = only
+{{ if .isMac -}}
 [filter "lfs"]
 	process = git-lfs filter-process
 	required = true
 	clean = git-lfs clean -- %f
 	smudge = git-lfs smudge -- %f
+{{ end -}}
 [alias]
 	acp = "!f() { git add -A && git commit -m \"${@:-update}\" && git push origin HEAD; }; f"
-    prod = "!f() { git push prod main; }; f"
-
+	prod = "!f() { git push prod main; }; f"
 [rerere]
 	enabled = true
+{{ if .isMac -}}
 [safe]
-	directory = /var/www/tech-tok/.git
-	directory = /var/www/tech-tok/.git
 	directory = *
-	directory = /var/www/tech-tok/.git
 [credential "https://dev.azure.com"]
 	useHttpPath = true
+{{ end -}}
 [commit]
 	gpgsign = true
+[tag]
+	gpgSign = true
 [gpg]
+{{ if .isMac -}}
 	format = ssh
+{{ end -}}

@@ -1,0 +1,44 @@
+# p10k only on Mac
+{{ if not .isMac }}
+.p10k.zsh
+{{ end }}
+
+# ghostty only on Mac
+{{ if not .isMac }}
+.config/ghostty
+{{ end }}
+
+# et helpers only on personal Mac
+{{ if not .isPersonalMac }}
+.zsh/et.zsh
+{{ end }}
+
+# zellij only on Linux servers
+{{ if .isMac }}
+.config/zellij
+{{ end }}
+
+# .zshenv only on Linux
+{{ if .isMac }}
+.zshenv
+{{ end }}
+
+# claude statusline only on Linux servers that run claude
+{{ if or .isMac .isHetz }}
+.config/claude
+{{ end }}
+
+# swiftbar dexcom plugin only on work-mac
+{{ if not .isWorkMac }}
+.local/share/swiftbar
+{{ end }}
+
+# ET server install only on Linux servers (jackbot/hetz)
+{{ if or .isMac .isLinux3090 }}
+run_once_install-et.sh
+{{ end }}
+
+# nvim install only on Linux
+{{ if .isMac }}
+run_once_install-nvim.sh
+{{ end }}
