@@ -25,6 +25,7 @@ wt() {
     rm)  _wt_rm  "$@" ;;
     ls)  _wt_ls  "$@" ;;
     cd)  _wt_cd  "$@" ;;
+    main) _wt_main "$@" ;;
     ""|-h|--help|help)
       cat <<'EOF'
 wt — git worktree helpers (operate on the repo containing cwd)
@@ -50,6 +51,9 @@ wt — git worktree helpers (operate on the repo containing cwd)
                          Tab-completes existing worktree names.
 
   wt ls                  List worktrees with branch, dirty/clean state, and path.
+
+  wt main                cd back to the main worktree (the repo root), leaving
+                         the current worktree.
 EOF
       ;;
     *)
@@ -352,6 +356,18 @@ _wt_rm() {
   print -- "wt rm: removed worktree and local branch '$branch'"
 }
 
+_wt_main() {
+  if ! _wt_in_repo; then
+    print -u2 "wt main: not inside a git repository"
+    return 1
+  fi
+
+  local main_root
+  main_root=$(_wt_main_root) || { print -u2 "wt main: cannot resolve repo root"; return 1; }
+
+  cd "$main_root" || return 1
+}
+
 _wt_ls() {
   if ! _wt_in_repo; then
     print -u2 "wt ls: not inside a git repository"
@@ -427,6 +443,7 @@ _wt() {
     'rm:remove a worktree'
     'ls:list worktrees'
     'cd:cd into an existing worktree'
+    'main:cd back to the main worktree'
     'help:show help'
   )
 
