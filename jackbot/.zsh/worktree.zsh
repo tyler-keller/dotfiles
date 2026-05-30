@@ -26,6 +26,7 @@ wt() {
     ls)  _wt_ls  "$@" ;;
     cd)  _wt_cd  "$@" ;;
     main) _wt_main "$@" ;;
+    update) _wt_update "$@" ;;
     ""|-h|--help|help)
       cat <<'EOF'
 wt — git worktree helpers (operate on the repo containing cwd)
@@ -54,6 +55,10 @@ wt — git worktree helpers (operate on the repo containing cwd)
 
   wt main                cd back to the main worktree (the repo root), leaving
                          the current worktree.
+
+  wt update [--merge]    Update the current worktree branch from origin/<default>.
+                         Defaults to rebase; --merge creates a merge commit if
+                         fast-forward is not possible.
 EOF
       ;;
     *)
@@ -368,6 +373,76 @@ _wt_main() {
   cd "$main_root" || return 1
 }
 
+_wt_update() {
+  if ! _wt_in_repo; then
+    print -u2 "wt update: not inside a git repository"
+    return 1
+  fi
+
+  local mode="rebase"
+  local arg
+  for arg in "$@"; do
+    case $arg in
+      --merge) mode="merge" ;;
+      -h|--help)
+        print -- "usage: wt update [--merge]"
+        print -- "       default: fetch origin, then rebase current branch onto origin/<default>"
+        return 0
+        ;;
+      -*) print -u2 "wt update: unknown flag '$arg'"; return 2 ;;
+      *)  print -u2 "wt update: unexpected argument '$arg'"; return 2 ;;
+    esac
+  done
+
+  local main_root cur_root
+  main_root=$(_wt_main_root) || { print -u2 "wt update: cannot resolve repo root"; return 1; }
+  cur_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
+    print -u2 "wt update: cannot resolve current worktree"; return 1; }
+
+  if [[ ${cur_root:A} == ${main_root:A} ]]; then
+    print -u2 "wt update: cwd is the main worktree; run git pull there instead"
+    return 1
+  fi
+
+  local branch
+  branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null) || {
+    print -u2 "wt update: current worktree is detached"
+    return 1
+  }
+
+  if [[ -n $(git status --porcelain) ]]; then
+    print -u2 "wt update: worktree has uncommitted changes; commit/stash first"
+    return 1
+  fi
+
+  local default
+  default=$(_wt_default_branch) || {
+    print -u2 "wt update: cannot detect default branch (origin/HEAD not set?)"
+    print -u2 "           try: git remote set-head origin --auto"
+    return 1
+  }
+
+  print -- "wt update: fetching origin..."
+  if ! git -C "$main_root" fetch origin --quiet; then
+    print -u2 "wt update: fetch failed"
+    return 1
+  fi
+
+  local target="origin/$default"
+  if ! git -C "$main_root" show-ref --verify --quiet "refs/remotes/$target"; then
+    print -u2 "wt update: $target does not exist"
+    return 1
+  fi
+
+  if [[ $mode == "merge" ]]; then
+    print -- "wt update: merging $target into $branch..."
+    git merge "$target"
+  else
+    print -- "wt update: rebasing $branch onto $target..."
+    git rebase "$target"
+  fi
+}
+
 _wt_ls() {
   if ! _wt_in_repo; then
     print -u2 "wt ls: not inside a git repository"
@@ -444,6 +519,7 @@ _wt() {
     'ls:list worktrees'
     'cd:cd into an existing worktree'
     'main:cd back to the main worktree'
+    'update:update current worktree from origin default branch'
     'help:show help'
   )
 
@@ -472,6 +548,11 @@ _wt() {
         cd)
           _arguments \
             '1:worktree:_wt_local_worktree_names' && ret=0
+          ;;
+        update)
+          _arguments \
+            '--merge[merge origin default branch instead of rebasing]' \
+            '(-h --help)'{-h,--help}'[show help]' && ret=0
           ;;
       esac
       ;;
